@@ -3,7 +3,7 @@ import spacy
 
 # Load the English model once when the module is imported
 # Loading it once and reusing it is much faster than loading per request
-nlp = spacy.load("en_core_web_md")
+nlp = spacy.load("en_core_web_sm")
 
 # Skill keywords to look for in the resume text
 SKILL_KEYWORDS = [
