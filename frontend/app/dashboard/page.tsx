@@ -45,6 +45,7 @@ export default function DashboardPage() {
       return;
     }
     loadDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately runs once on mount only
   }, []);
 
   async function loadDashboard() {

@@ -22,8 +22,6 @@ export default function AnalysisResultsPage() {
       return;
     }
 
-    let interval: ReturnType<typeof setInterval>;
-
     async function poll() {
       try {
         const data = await analysesApi.get(analysisId);
@@ -37,9 +35,10 @@ export default function AnalysisResultsPage() {
       }
     }
 
+    const interval = setInterval(poll, 2000);
     poll();
-    interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
+
   }, [analysisId, router]);
 
   function ScoreBar({ label, score, colour }: { label: string; score: number; colour: string }) {
