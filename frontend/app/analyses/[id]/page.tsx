@@ -7,6 +7,7 @@ import { analysesApi } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
 import type { AnalysisDetail } from "@/types";
+import SkillsCoverageChart from "@/components/SkillsCoverageChart";
 
 export default function AnalysisResultsPage() {
   const params = useParams();
@@ -145,6 +146,12 @@ export default function AnalysisResultsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Skills Breakdown</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+             <div>
+               <SkillsCoverageChart breakdown={breakdown} />
+             </div>
+             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+               {/* ...the existing "Matched" and "Missing" <div> blocks go here, unchanged... */}
+              </div>
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Matched ({breakdown.matched_skills.length})
