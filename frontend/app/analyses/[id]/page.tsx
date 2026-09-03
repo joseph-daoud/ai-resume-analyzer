@@ -146,44 +146,43 @@ export default function AnalysisResultsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Skills Breakdown</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-             <div>
-               <SkillsCoverageChart breakdown={breakdown} />
-             </div>
-             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-               {/* ...the existing "Matched" and "Missing" <div> blocks go here, unchanged... */}
-              </div>
               <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Matched ({breakdown.matched_skills.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {breakdown.matched_skills.length === 0 ? (
-                    <span className="text-gray-400 text-sm">None</span>
-                  ) : (
-                    breakdown.matched_skills.map((skill) => (
-                      <span key={skill} className="px-2.5 py-1 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 text-xs
-                                                     font-medium rounded-full border border-green-200 dark:border-green-900">
-                        {skill}
-                      </span>
-                    ))
-                  )}
+                <SkillsCoverageChart breakdown={breakdown} />
+              </div>
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Matched ({breakdown.matched_skills.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {breakdown.matched_skills.length === 0 ? (
+                      <span className="text-gray-400 text-sm">None</span>
+                    ) : (
+                      breakdown.matched_skills.map((skill) => (
+                        <span key={skill} className="px-2.5 py-1 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 text-xs
+                                                       font-medium rounded-full border border-green-200 dark:border-green-900">
+                          {skill}
+                        </span>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Missing ({breakdown.missing_skills.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {breakdown.missing_skills.length === 0 ? (
-                    <span className="text-gray-400 text-sm">None — great coverage!</span>
-                  ) : (
-                    breakdown.missing_skills.map((skill) => (
-                      <span key={skill} className="px-2.5 py-1 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-xs
-                                                     font-medium rounded-full border border-red-200 dark:border-red-900">
-                        {skill}
-                      </span>
-                    ))
-                  )}
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Missing ({breakdown.missing_skills.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {breakdown.missing_skills.length === 0 ? (
+                      <span className="text-gray-400 text-sm">None — great coverage!</span>
+                    ) : (
+                      breakdown.missing_skills.map((skill) => (
+                        <span key={skill} className="px-2.5 py-1 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-xs
+                                                       font-medium rounded-full border border-red-200 dark:border-red-900">
+                          {skill}
+                        </span>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
