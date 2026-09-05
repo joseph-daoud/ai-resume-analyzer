@@ -18,6 +18,10 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # "job_seeker" or "hiring_manager" — set at registration, controls
+    # which features the frontend shows (e.g. bulk resume ranking).
+    role: Mapped[str] = mapped_column(String(20), default="job_seeker", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc)

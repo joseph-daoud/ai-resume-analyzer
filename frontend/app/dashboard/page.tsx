@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { resumesApi, jobDescriptionsApi, analysesApi } from "@/lib/api";
+import { resumesApi, jobDescriptionsApi, analysesApi, authApi } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
-import type { Resume, JobDescription, Analysis } from "@/types";
+import type { Resume, JobDescription, Analysis, User } from "@/types";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const confirmAction = useConfirm();
 
   // ── Data state ──────────────────────────────────────────────────────────────
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [jobDescriptions, setJobDescriptions] = useState<JobDescription[]>([]);
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
@@ -23,6 +24,13 @@ export default function DashboardPage() {
   // ── UI state ─────────────────────────────────────────────────────────────────
   const [loadingPage, setLoadingPage] = useState(true);
   const [uploading, setUploading] = useState(false);
+
+  // ── Bulk ranking form state (hiring managers only) ────────────────────────────
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [selectedForRanking, setSelectedForRanking] = useState<Set<string>>(new Set());
+  const [rankingJobId, setRankingJobId] = useState("");
+  const [startingRanking, setStartingRanking] = useState(false);
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Job description form + detail-view state ─────────────────────────────────
   const [jobTitle, setJobTitle] = useState("");
@@ -50,11 +58,13 @@ export default function DashboardPage() {
 
   async function loadDashboard() {
     try {
-      const [resumeData, jobData, analysisData] = await Promise.all([
+      const [user, resumeData, jobData, analysisData] = await Promise.all([
+        authApi.me(),
         resumesApi.list(),
         jobDescriptionsApi.list(),
         analysesApi.list(),
       ]);
+      setCurrentUser(user);
       setResumes(resumeData);
       setJobDescriptions(jobData);
       setAnalyses(analysisData);
@@ -201,6 +211,55 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleBulkFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    setBulkUploading(true);
+    try {
+      const newResumes = await resumesApi.bulkUpload(files);
+      setResumes((prev) => [...newResumes, ...prev]);
+      // Pre-select the ones just uploaded so they're ready to rank.
+      setSelectedForRanking((prev) => {
+        const next = new Set(prev);
+        newResumes.forEach((r) => next.add(r.id));
+        return next;
+      });
+      showToast(`${newResumes.length} resume(s) uploaded — processing now.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Bulk upload failed.", "error");
+    } finally {
+      setBulkUploading(false);
+      if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
+    }
+  }
+
+  function toggleResumeForRanking(id: string) {
+    setSelectedForRanking((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  async function handleStartRanking(e: React.FormEvent) {
+    e.preventDefault();
+    if (!rankingJobId || selectedForRanking.size === 0) return;
+
+    setStartingRanking(true);
+    try {
+      await jobDescriptionsApi.rank(rankingJobId, Array.from(selectedForRanking));
+      router.push(`/rankings/${rankingJobId}`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to start ranking.", "error");
+      setStartingRanking(false);
+    }
+  }
+
   function StatusBadge({ status }: { status: string }) {
     const colours: Record<string, string> = {
       done:       "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -326,6 +385,15 @@ export default function DashboardPage() {
                       >
                         {expandedJobId === job.id ? "▾" : "▸"} {job.title}
                       </button>
+                      {currentUser?.role === "hiring_manager" && (
+                        <Link
+                          href={`/rankings/${job.id}`}
+                          title="View candidate ranking"
+                          className="text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition px-1 whitespace-nowrap"
+                        >
+                          Ranking →
+                        </Link>
+                      )}
                       <button
                         onClick={() => handleDeleteJob(job.id)}
                         title="Delete job description"
@@ -396,6 +464,91 @@ export default function DashboardPage() {
             </form>
           )}
         </div>
+
+        {currentUser?.role === "hiring_manager" && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Rank Candidates</h2>
+                <p className="text-sm text-gray-400 mt-0.5">
+                  Upload multiple resumes and rank them against one job description.
+                </p>
+              </div>
+              <button
+                onClick={() => bulkFileInputRef.current?.click()}
+                disabled={bulkUploading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
+                           text-white text-sm font-medium rounded-lg transition whitespace-nowrap"
+              >
+                {bulkUploading ? "Uploading..." : "Upload Resumes"}
+              </button>
+              <input
+                ref={bulkFileInputRef}
+                type="file"
+                accept=".pdf,.docx,.txt"
+                multiple
+                className="hidden"
+                onChange={handleBulkFileChange}
+              />
+            </div>
+
+            {resumes.length === 0 ? (
+              <p className="text-gray-400 text-sm py-2">Upload resumes above to start ranking candidates.</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Candidates ({selectedForRanking.size} selected)
+                </p>
+                <div className="max-h-48 overflow-y-auto space-y-1 mb-4 pr-1">
+                  {resumes.map((resume) => (
+                    <label
+                      key={resume.id}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors ${
+                        resume.status === "done"
+                          ? "bg-gray-50 dark:bg-gray-700 cursor-pointer"
+                          : "bg-gray-50 dark:bg-gray-700 opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedForRanking.has(resume.id)}
+                        disabled={resume.status !== "done"}
+                        onChange={() => toggleResumeForRanking(resume.id)}
+                        className="rounded"
+                      />
+                      <span className="text-gray-700 dark:text-gray-300 truncate flex-1">{resume.filename}</span>
+                      <StatusBadge status={resume.status} />
+                    </label>
+                  ))}
+                </div>
+
+                <form onSubmit={handleStartRanking} className="flex flex-col sm:flex-row gap-3">
+                  <select
+                    value={rankingJobId}
+                    onChange={(e) => setRankingJobId(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700
+                               text-gray-900 dark:text-gray-100 transition-colors"
+                  >
+                    <option value="">Select a job description...</option>
+                    {jobDescriptions.map((j) => (
+                      <option key={j.id} value={j.id}>{j.title}</option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="submit"
+                    disabled={startingRanking || !rankingJobId || selectedForRanking.size === 0}
+                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400
+                               text-white text-sm font-semibold rounded-lg transition whitespace-nowrap"
+                  >
+                    {startingRanking ? "Starting..." : `Rank ${selectedForRanking.size || ""} Candidates →`}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        )}
 
         {analyses.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">

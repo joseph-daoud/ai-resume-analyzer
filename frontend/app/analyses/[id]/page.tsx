@@ -6,6 +6,7 @@ import Link from "next/link";
 import { analysesApi } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
+import { useToast } from "@/components/ToastProvider";
 import type { AnalysisDetail } from "@/types";
 import SkillsCoverageChart from "@/components/SkillsCoverageChart";
 
@@ -13,9 +14,11 @@ export default function AnalysisResultsPage() {
   const params = useParams();
   const router = useRouter();
   const analysisId = params.id as string;
+  const { showToast } = useToast();
 
   const [analysis, setAnalysis] = useState<AnalysisDetail | null>(null);
   const [error, setError] = useState("");
+  const [generatingFeedback, setGeneratingFeedback] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -41,6 +44,18 @@ export default function AnalysisResultsPage() {
     return () => clearInterval(interval);
 
   }, [analysisId, router]);
+
+  async function handleGenerateFeedback() {
+    setGeneratingFeedback(true);
+    try {
+      const updated = await analysesApi.generateFeedback(analysisId);
+      setAnalysis(updated);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to generate feedback.", "error");
+    } finally {
+      setGeneratingFeedback(false);
+    }
+  }
 
   function ScoreBar({ label, score, colour }: { label: string; score: number; colour: string }) {
     return (
@@ -194,7 +209,19 @@ export default function AnalysisResultsPage() {
             Feedback ({analysis.feedback_items.length})
           </h2>
           {analysis.feedback_items.length === 0 ? (
-            <p className="text-gray-400 text-sm">No feedback items were generated.</p>
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm mb-3">
+                Detailed feedback hasn&apos;t been generated for this analysis yet.
+              </p>
+              <button
+                onClick={handleGenerateFeedback}
+                disabled={generatingFeedback}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
+                           text-white text-sm font-medium rounded-lg transition"
+              >
+                {generatingFeedback ? "Generating..." : "Generate Feedback"}
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
               {analysis.feedback_items

@@ -2,10 +2,13 @@
 // Authentication
 // =============================================================================
 
+export type UserRole = "job_seeker" | "hiring_manager";
+
 export interface User {
   id: string;
   email: string;
   full_name: string;
+  role: UserRole;
   created_at: string;
 }
 
@@ -23,6 +26,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name: string;
+  role: UserRole;
 }
 
 // =============================================================================
@@ -114,6 +118,19 @@ export interface AnalysisDetail extends Analysis {
 export interface AnalysisCreate {
   resume_id: string;
   job_description_id: string;
+}
+
+// =============================================================================
+// Ranking — hiring manager feature: many resumes vs. one job description
+// =============================================================================
+
+export interface RankingItem {
+  analysis_id: string;
+  resume_id: string;
+  filename: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  fit_score: number | null;
+  ats_score: number | null;
 }
 
 // =============================================================================

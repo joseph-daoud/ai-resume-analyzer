@@ -64,7 +64,7 @@ def process_resume(resume_id: str):
         db.close()
 
 
-def run_analysis(analysis_id: str):
+def run_analysis(analysis_id: str, generate_feedback_step: bool = True):
     """
     Run the full analysis pipeline for a resume + job description pair.
 
@@ -73,8 +73,20 @@ def run_analysis(analysis_id: str):
     2. Generate job description embedding if not already done
     3. Compute fit score and ATS score
     4. Generate detailed score breakdown
-    5. Generate LLM feedback
+    5. Generate LLM feedback (skippable — see generate_feedback_step)
     6. Save all results to database
+
+    generate_feedback_step controls step 5, which is the only step that
+    calls the Groq API. Steps 1-4 (embeddings + score breakdown) run
+    entirely locally via sentence-transformers, so they're free and have
+    no rate limit regardless of this flag.
+
+    Bulk ranking (see bulk_run_analyses) passes False here: scoring many
+    resumes against one job description only needs fit_score/ats_score
+    to sort candidates, and generating narrative feedback for every one
+    of them at once would risk hitting Groq's free-tier requests-per-minute
+    limit. Feedback for an individual candidate can still be generated
+    afterwards, on demand, via POST /analyses/{id}/feedback.
     """
     db: Session = SessionLocal()
     try:
@@ -110,16 +122,19 @@ def run_analysis(analysis_id: str):
             fit_score, ats_score, resume_skills, job_description.content
         )
 
-        # Step 5 — Use stored raw_text instead of re-parsing the file
-        raw_text = resume.raw_text
-        if not raw_text:
-            # Fallback: re-parse the file if raw_text was not stored
-            file_path = os.path.join(UPLOAD_DIR, resume.file_path)
-            raw_text = parse_resume(file_path)
+        # Step 5 — Generate LLM feedback, unless this is a bulk/ranking run
+        feedback_items = []
+        if generate_feedback_step:
+            # Use stored raw_text instead of re-parsing the file
+            raw_text = resume.raw_text
+            if not raw_text:
+                # Fallback: re-parse the file if raw_text was not stored
+                file_path = os.path.join(UPLOAD_DIR, resume.file_path)
+                raw_text = parse_resume(file_path)
 
-        feedback_items = generate_feedback(
-            raw_text, job_description.content, score_breakdown
-        )
+            feedback_items = generate_feedback(
+                raw_text, job_description.content, score_breakdown
+            )
 
         # Step 6 — Save all results to database
         analysis.fit_score = fit_score
@@ -150,3 +165,34 @@ def run_analysis(analysis_id: str):
         print(f"Error running analysis {analysis_id}: {e}")
     finally:
         db.close()
+
+
+def bulk_process_resumes(resume_ids: list[str]):
+    """
+    Process multiple uploaded resumes ONE AT A TIME (not concurrently).
+
+    Used by the hiring-manager bulk-upload endpoint. Deliberately
+    sequential rather than scheduling N background tasks: the free-tier
+    instance this runs on has very limited CPU, and this process already
+    holds spaCy + sentence-transformers + torch in memory. Running many
+    embedding/NLP jobs at once would queue up on that single thin CPU and
+    could slow the whole app down for other users mid-batch. Processing
+    one resume at a time trades wall-clock time (a 20-resume batch will
+    take a while) for not degrading the service for everyone else.
+    """
+    for resume_id in resume_ids:
+        process_resume(resume_id)
+
+
+def bulk_run_analyses(analysis_ids: list[str], generate_feedback_step: bool = False):
+    """
+    Run multiple analyses ONE AT A TIME (not concurrently) — same
+    rationale as bulk_process_resumes. Used by the ranking endpoint.
+
+    generate_feedback_step defaults to False here: ranking only needs
+    fit_score/ats_score (computed locally, free), and generating Groq
+    feedback for every resume in a large batch at once would risk
+    hitting the free-tier rate limit. See run_analysis() for details.
+    """
+    for analysis_id in analysis_ids:
+        run_analysis(analysis_id, generate_feedback_step=generate_feedback_step)

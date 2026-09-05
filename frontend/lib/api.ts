@@ -12,6 +12,7 @@ import type {
   Analysis,
   AnalysisDetail,
   AnalysisCreate,
+  RankingItem,
 } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -133,6 +134,19 @@ export const resumesApi = {
     });
   },
 
+  /**
+   * Upload multiple resume files at once (hiring-manager ranking flow).
+   * FastAPI expects each file under the same "files" field name.
+   */
+  bulkUpload: (files: File[]): Promise<Resume[]> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    return request<Resume[]>("/resumes/bulk-upload", {
+      method: "POST",
+      body: formData,
+    });
+  },
+
   list: (): Promise<Resume[]> => request<Resume[]>("/resumes"),
 
   get: (id: string): Promise<ResumeDetail> =>
@@ -161,6 +175,20 @@ export const jobDescriptionsApi = {
 
   delete: (id: string): Promise<void> =>
     request<void>(`/job-descriptions/${id}`, { method: "DELETE" }),
+
+  /**
+   * Hiring-manager feature: score multiple resumes against this job
+   * description and rank them. Returns immediately with a mostly-pending
+   * ranking — poll getRanking() until every row is 'completed'.
+   */
+  rank: (jobDescriptionId: string, resumeIds: string[]): Promise<RankingItem[]> =>
+    request<RankingItem[]>(`/job-descriptions/${jobDescriptionId}/rank`, {
+      method: "POST",
+      body: JSON.stringify({ resume_ids: resumeIds }),
+    }),
+
+  getRanking: (jobDescriptionId: string): Promise<RankingItem[]> =>
+    request<RankingItem[]>(`/job-descriptions/${jobDescriptionId}/ranking`),
 };
 
 // =============================================================================
@@ -178,4 +206,12 @@ export const analysesApi = {
     request<AnalysisDetail>(`/analyses/${id}`),
 
   list: (): Promise<Analysis[]> => request<Analysis[]>("/analyses"),
+
+  /**
+   * Generate narrative feedback for an analysis that was scored without
+   * it (e.g. one created via bulk ranking). One-off Groq call for a
+   * single candidate, not a batch — safe to call on demand.
+   */
+  generateFeedback: (id: string): Promise<AnalysisDetail> =>
+    request<AnalysisDetail>(`/analyses/${id}/feedback`, { method: "POST" }),
 };

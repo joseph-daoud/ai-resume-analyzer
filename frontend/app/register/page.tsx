@@ -6,6 +6,7 @@ import Link from "next/link";
 import { authApi } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
+import type { UserRole } from "@/types";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("job_seeker");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +30,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await authApi.register({ email, password, full_name: fullName });
+      await authApi.register({ email, password, full_name: fullName, role });
       const token = await authApi.login({ username: email, password });
       setToken(token.access_token);
       router.push("/dashboard");
@@ -121,6 +123,41 @@ export default function RegisterPage() {
                            focus:ring-2 focus:ring-blue-500 focus:border-transparent
                            transition-colors"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                I am a...
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole("job_seeker")}
+                  className={`py-2.5 px-3 rounded-lg text-sm font-medium border transition ${
+                    role === "job_seeker"
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  Job seeker
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("hiring_manager")}
+                  className={`py-2.5 px-3 rounded-lg text-sm font-medium border transition ${
+                    role === "hiring_manager"
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  Hiring manager
+                </button>
+              </div>
+              {role === "hiring_manager" && (
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Adds the ability to rank multiple candidate resumes against one job description.
+                </p>
+              )}
             </div>
 
             <button

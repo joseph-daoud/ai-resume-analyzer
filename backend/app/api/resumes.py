@@ -11,9 +11,14 @@ from app.services.resume_service import (
     get_resume_by_id,
     delete_resume
 )
-from app.tasks.analysis_tasks import process_resume
+from app.tasks.analysis_tasks import process_resume, bulk_process_resumes
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
+
+# Caps how many resumes can be uploaded/ranked in one request. Keeps a
+# single hiring-manager batch from overwhelming a free-tier instance's
+# limited CPU (see bulk_process_resumes for why processing is sequential).
+MAX_BULK_UPLOAD = 30
 
 
 @router.post("/upload", response_model=ResumeResponse, status_code=201)
@@ -43,6 +48,50 @@ def upload_resume(
     background_tasks.add_task(process_resume, str(resume.id))
 
     return resume
+
+
+@router.post("/bulk-upload", response_model=list[ResumeResponse], status_code=201)
+def bulk_upload_resumes(
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload multiple resumes at once — for hiring managers who want to
+    rank many candidates against one job description. Accepts up to
+    MAX_BULK_UPLOAD files.
+
+    Each file is saved and a record created immediately (same as single
+    upload). Parsing/embedding then runs in the background, but
+    sequentially across the whole batch (see bulk_process_resumes) rather
+    than as separate concurrent tasks, to stay usable on a free-tier
+    instance.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided.")
+    if len(files) > MAX_BULK_UPLOAD:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many files. Upload at most {MAX_BULK_UPLOAD} resumes at a time."
+        )
+
+    created_resumes = []
+    for file in files:
+        unique_filename, _ = save_file_locally(file, str(current_user.id))
+        resume = create_resume_record(
+            db=db,
+            user_id=current_user.id,
+            filename=file.filename or unique_filename,
+            file_path=unique_filename
+        )
+        created_resumes.append(resume)
+
+    background_tasks.add_task(
+        bulk_process_resumes, [str(r.id) for r in created_resumes]
+    )
+
+    return created_resumes
 
 
 @router.get("", response_model=list[ResumeResponse])
