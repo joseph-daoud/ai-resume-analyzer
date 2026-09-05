@@ -24,7 +24,7 @@ export default function RankingResultsPage() {
       return;
     }
 
-    let interval: ReturnType<typeof setInterval>;
+    const intervalRef: { current: ReturnType<typeof setInterval> | null } = { current: null };
 
     async function poll() {
       try {
@@ -33,10 +33,10 @@ export default function RankingResultsPage() {
         const stillWorking = items.some(
           (i) => i.status === "pending" || i.status === "processing"
         );
-        if (!stillWorking) clearInterval(interval);
+        if (!stillWorking && intervalRef.current) clearInterval(intervalRef.current);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load ranking.");
-        clearInterval(interval);
+        if (intervalRef.current) clearInterval(intervalRef.current);
       } finally {
         setLoading(false);
       }
@@ -45,11 +45,13 @@ export default function RankingResultsPage() {
     // The job title/content only needs to load once.
     jobDescriptionsApi.get(jobId).then(setJobDescription).catch(() => {});
 
-    interval = setInterval(poll, 2500);
+    intervalRef.current = setInterval(poll, 2500);
     poll();
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [jobId, router]);
-
+  
   function StatusBadge({ status }: { status: string }) {
     const colours: Record<string, string> = {
       completed:  "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
