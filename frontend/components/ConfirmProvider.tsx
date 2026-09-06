@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { useLanguage } from "./LanguageProvider";
 
 interface ConfirmOptions {
   title?: string;
@@ -42,6 +43,7 @@ export function useConfirm() {
 }
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
   const [pending, setPending] = useState<PendingConfirm | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -60,13 +62,13 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       setPending({
         title: opts.title,
         message: opts.message,
-        confirmLabel: opts.confirmLabel ?? "Confirm",
-        cancelLabel: opts.cancelLabel ?? "Cancel",
+        confirmLabel: opts.confirmLabel ?? t("confirm.confirm"),
+        cancelLabel: opts.cancelLabel ?? t("confirm.cancel"),
         danger: opts.danger ?? false,
         resolve,
       });
     });
-  }, []);
+  }, [t]);
 
   const handleChoice = useCallback((result: boolean) => {
     pending?.resolve(result);
@@ -97,37 +99,37 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             aria-modal="true"
             aria-labelledby={pending.title ? "confirm-dialog-title" : undefined}
             aria-describedby="confirm-dialog-message"
-            className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700
+            className={`bg-paper-raise rounded-2xl border border-line
                         shadow-xl max-w-sm w-full p-6 transition-all duration-200
                         ${visible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
             onClick={(e) => e.stopPropagation()}
           >
             {pending.title && (
-              <h3 id="confirm-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h3 id="confirm-dialog-title" className="text-lg font-semibold text-ink mb-2">
                 {pending.title}
               </h3>
             )}
-            <p id="confirm-dialog-message" className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            <p id="confirm-dialog-message" className="text-sm text-ink-muted mb-6">
               {pending.message}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => handleChoice(false)}
                 autoFocus={pending.danger}
-                className="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300
-                           hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none
-                           focus-visible:ring-2 focus-visible:ring-blue-500 transition"
+                className="px-4 py-2 text-sm font-medium rounded-lg text-ink
+                           hover:bg-paper focus:outline-none
+                           focus-visible:ring-2 focus-visible:ring-accent transition"
               >
                 {pending.cancelLabel}
               </button>
               <button
                 onClick={() => handleChoice(true)}
                 autoFocus={!pending.danger}
-                className={`px-4 py-2 text-sm font-medium rounded-lg text-white focus:outline-none
+                className={`px-4 py-2 text-sm font-medium rounded-lg focus:outline-none
                             focus-visible:ring-2 focus-visible:ring-offset-2 transition
                             ${pending.danger
-                              ? "bg-red-600 hover:bg-red-700 focus-visible:ring-red-500"
-                              : "bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500"}`}
+                              ? "bg-red-600 hover:bg-red-700 text-white focus-visible:ring-red-500"
+                              : "bg-accent hover:bg-accent-strong text-white focus-visible:ring-accent"}`}
               >
                 {pending.confirmLabel}
               </button>

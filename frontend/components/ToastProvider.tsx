@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { useLanguage } from "./LanguageProvider";
 
 type ToastType = "success" | "error";
 
@@ -64,6 +65,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 function ToastItem({ toast, onDismiss }: { toast: ToastData; onDismiss: () => void }) {
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -76,7 +78,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastData; onDismiss: () => vo
   return (
     <div
       role="status"
-      className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border bg-white dark:bg-gray-800
+      className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border bg-paper-raise
                   transition-all duration-300 ease-out
                   ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
                   ${isSuccess ? "border-green-200 dark:border-green-900" : "border-red-200 dark:border-red-900"}`}
@@ -94,11 +96,11 @@ function ToastItem({ toast, onDismiss }: { toast: ToastData; onDismiss: () => vo
           </svg>
         )}
       </span>
-      <p className="text-sm text-gray-900 dark:text-gray-100 flex-1 pt-0.5">{toast.message}</p>
+      <p className="text-sm text-ink flex-1 pt-0.5">{toast.message}</p>
       <button
         onClick={onDismiss}
-        aria-label="Dismiss notification"
-        className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition shrink-0"
+        aria-label={t("toast.dismiss")}
+        className="text-ink-faint hover:text-ink-muted transition shrink-0"
       >
         ✕
       </button>

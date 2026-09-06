@@ -6,9 +6,14 @@ import Link from "next/link";
 import { authApi } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import Logo from "@/components/Logo";
+import AuthBrandPanel from "@/components/AuthBrandPanel";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   // Form field state
   const [email, setEmail] = useState("");
@@ -31,44 +36,48 @@ export default function LoginPage() {
       setToken(token.access_token);
       router.push("/dashboard");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Login failed. Please try again."
-      );
+      setError(err instanceof Error ? err.message : t("login.error"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 transition-colors">
-      <div className="fixed top-4 right-4">
-        <ThemeToggle />
-      </div>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-paper transition-colors">
+      <AuthBrandPanel />
 
-      <div className="max-w-md w-full">
-
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            AI Resume Analyzer
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to your account</p>
+      <div className="relative flex items-center justify-center px-4 py-12">
+        <div className="absolute top-4 right-4 lg:top-6 lg:right-6 flex items-center gap-1">
+          <LanguageSwitcher />
+          <ThemeToggle />
         </div>
 
-        {/* Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 transition-colors">
+        <div className="w-full max-w-sm animate-fade-in-up">
+
+          <div className="lg:hidden flex justify-center mb-8">
+            <Logo size="md" />
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-ink">
+              {t("login.title")}
+            </h1>
+            <p className="text-ink-muted mt-1.5 text-sm">
+              {t("login.subtitle")}
+            </p>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-lg">
-              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+            <div className="mb-5 p-3 bg-accent-soft border border-accent rounded-lg animate-fade-in-up">
+              <p className="text-sm text-accent-strong">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email address
+              <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
+                {t("login.email")}
               </label>
               <input
                 id="email"
@@ -77,16 +86,16 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           text-gray-900 dark:text-gray-100 rounded-lg
-                           placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2
-                           focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-2.5 bg-paper-raise border border-line
+                           text-ink rounded-lg
+                           placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent
+                           transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password
+              <label htmlFor="password" className="block text-sm font-medium text-ink mb-1">
+                {t("login.password")}
               </label>
               <input
                 id="password"
@@ -95,28 +104,29 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           text-gray-900 dark:text-gray-100 rounded-lg
-                           placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2
-                           focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-2.5 bg-paper-raise border border-line
+                           text-ink rounded-lg
+                           placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent
+                           transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700
-                         disabled:bg-blue-400 disabled:cursor-not-allowed
-                         text-white font-semibold rounded-lg transition"
+              className="w-full py-2.5 px-4 bg-accent hover:bg-accent-strong
+                         disabled:opacity-60 disabled:cursor-not-allowed
+                         text-white font-semibold rounded-lg
+                         transition-all hover:-translate-y-0.5"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("login.submitting") : t("login.submit")}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-              Create one
+          <p className="text-center text-sm text-ink-muted mt-8">
+            {t("login.noAccount")}{" "}
+            <Link href="/register" className="font-medium hover:underline text-accent">
+              {t("login.createOne")}
             </Link>
           </p>
         </div>

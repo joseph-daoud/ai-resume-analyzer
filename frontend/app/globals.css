@@ -3,11 +3,70 @@
 @tailwind utilities;
 
 :root {
+  --paper: #f7f6f3;
+  --paper-raise: #ffffff;
+  --ink: #2b2926;
+  --ink-muted: #6b675f;
+  --ink-faint: #9c988e;
+  --line: #e6e3dc;
+  --accent: #7d2e40;
+  --accent-strong: #5e1f2d;
+  --accent-soft: #f3e5e8;
+
   --chart-matched: #16a34a; /* green-600, same as your matched-skill badges */
   --chart-missing: #dc2626; /* red-600, same as your missing-skill badges */
 }
 
 .dark {
+  --paper: #1f1f1e;
+  --paper-raise: #292927;
+  --ink: #ece9e3;
+  --ink-muted: #a19c90;
+  --ink-faint: #6c675c;
+  --line: #3a3835;
+  --accent: #9c4058;
+  --accent-strong: #b5566d;
+  --accent-soft: #331e24;
+
   --chart-matched: #4ade80; /* green-400 */
   --chart-missing: #f87171; /* red-400 */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Thin, brand-tinted scrollbar (WebKit) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-badge,
+  .logo-badge .glow,
+  .logo-badge svg,
+  .a-check {
+    animation: none !important;
+  }
+  .a-check {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
 }
