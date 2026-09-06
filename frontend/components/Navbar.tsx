@@ -43,9 +43,23 @@ export default function Navbar({ showBackLink = false }: NavbarProps) {
           {showBackLink && (
             <Link
               href="/dashboard"
-              className="text-sm text-ink-muted hover:text-accent transition flex items-center gap-1"
+              aria-label={t("nav.backToDashboard")}
+              title={t("nav.backToDashboard")}
+              className="group p-2 rounded-lg border border-transparent text-ink-muted hover:text-white hover:bg-accent hover:border-accent hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all"
             >
-              <span aria-hidden className="rtl:rotate-180">←</span> {t("nav.backToDashboard")}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5 rtl:rotate-180 transition-transform duration-300 group-hover:-translate-x-0.5"
+              >
+                <path d="M9 6L3 12l6 6" />
+                <path d="M3 12h13a5 5 0 0 0 5-5V6" />
+              </svg>
             </Link>
           )}
           {user && (
@@ -57,9 +71,24 @@ export default function Navbar({ showBackLink = false }: NavbarProps) {
           <ThemeToggle />
           <button
             onClick={handleLogout}
-            className="text-sm font-medium text-ink-muted hover:text-red-600 dark:hover:text-red-400 transition"
+            aria-label={t("nav.signOut")}
+            title={t("nav.signOut")}
+            className="group p-2 rounded-lg border border-transparent text-ink-muted hover:text-white hover:bg-red-600 hover:border-red-600 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-all"
           >
-            {t("nav.signOut")}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-5 h-5 rtl:-scale-x-100 transition-transform duration-300 group-hover:translate-x-0.5"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="M16 17l5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
           </button>
         </div>
       </div>
