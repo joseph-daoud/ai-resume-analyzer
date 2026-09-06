@@ -6,6 +6,9 @@ import Link from "next/link";
 import { authApi } from "@/lib/api";
 import { removeToken } from "@/lib/auth";
 import ThemeToggle from "./ThemeToggle";
+import LanguageSwitcher from "./LanguageSwitcher";
+import Logo from "./Logo";
+import { useLanguage } from "./LanguageProvider";
 import type { User } from "@/types";
 
 interface NavbarProps {
@@ -18,6 +21,7 @@ interface NavbarProps {
 
 export default function Navbar({ showBackLink = false }: NavbarProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -30,31 +34,32 @@ export default function Navbar({ showBackLink = false }: NavbarProps) {
   }
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 transition-colors">
+    <nav className="sticky top-0 z-40 bg-paper-raise/80 backdrop-blur-md border-b border-line px-6 py-3 transition-colors">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-          AI Resume Analyzer
-        </h1>
+        <Link href="/dashboard" className="transition hover:opacity-80">
+          <Logo size="sm" />
+        </Link>
         <div className="flex items-center gap-4">
           {showBackLink && (
             <Link
               href="/dashboard"
-              className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              className="text-sm text-ink-muted hover:text-accent transition flex items-center gap-1"
             >
-              ← Back to dashboard
+              <span aria-hidden className="rtl:rotate-180">←</span> {t("nav.backToDashboard")}
             </Link>
           )}
           {user && (
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="hidden sm:inline text-sm text-ink-muted">
               {user.email}
             </span>
           )}
+          <LanguageSwitcher />
           <ThemeToggle />
           <button
             onClick={handleLogout}
-            className="text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
+            className="text-sm font-medium text-ink-muted hover:text-red-600 dark:hover:text-red-400 transition"
           >
-            Sign out
+            {t("nav.signOut")}
           </button>
         </div>
       </div>

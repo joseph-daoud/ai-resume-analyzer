@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ToastProvider";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -11,10 +12,10 @@ export const metadata: Metadata = {
   description: "Intelligent resume analysis powered by NLP and LLMs",
 };
 
-// Runs before React hydrates, so the correct theme is set on the very
-// first paint. Without this, a user with dark mode saved would see the
-// page flash light for a moment, because localStorage isn't available
-// during server rendering.
+// Runs before React hydrates, so the correct theme and language direction
+// are set on the very first paint. Without this, a user with dark mode or
+// Arabic saved would see the page flash light/LTR for a moment, because
+// localStorage isn't available during server rendering.
 const themeInitScript = `
 (function () {
   try {
@@ -22,6 +23,12 @@ const themeInitScript = `
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     var isDark = stored ? stored === "dark" : prefersDark;
     if (isDark) document.documentElement.classList.add("dark");
+
+    var locale = localStorage.getItem("locale");
+    if (locale === "ar") {
+      document.documentElement.lang = "ar";
+      document.documentElement.dir = "rtl";
+    }
   } catch (e) {}
 })();
 `;
@@ -32,16 +39,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${inter.className} bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors`}
+        className={`${inter.className} bg-paper text-ink transition-colors`}
       >
-        <ToastProvider>
-          <ConfirmProvider>{children}</ConfirmProvider>
-        </ToastProvider>
+        <LanguageProvider>
+          <ToastProvider>
+            <ConfirmProvider>{children}</ConfirmProvider>
+          </ToastProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

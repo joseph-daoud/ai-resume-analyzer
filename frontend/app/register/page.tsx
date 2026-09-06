@@ -6,10 +6,15 @@ import Link from "next/link";
 import { authApi } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import Logo from "@/components/Logo";
+import AuthBrandPanel from "@/components/AuthBrandPanel";
+import { useLanguage } from "@/components/LanguageProvider";
 import type { UserRole } from "@/types";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,7 +28,7 @@ export default function RegisterPage() {
     setError("");
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t("register.errorShort"));
       return;
     }
 
@@ -35,42 +40,48 @@ export default function RegisterPage() {
       setToken(token.access_token);
       router.push("/dashboard");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Registration failed. Please try again."
-      );
+      setError(err instanceof Error ? err.message : t("register.error"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 transition-colors">
-      <div className="fixed top-4 right-4">
-        <ThemeToggle />
-      </div>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-paper transition-colors">
+      <AuthBrandPanel />
 
-      <div className="max-w-md w-full">
-
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            AI Resume Analyzer
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">Create your account</p>
+      <div className="relative flex items-center justify-center px-4 py-12">
+        <div className="absolute top-4 right-4 lg:top-6 lg:right-6 flex items-center gap-1">
+          <LanguageSwitcher />
+          <ThemeToggle />
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 transition-colors">
+        <div className="w-full max-w-sm animate-fade-in-up">
+
+          <div className="lg:hidden flex justify-center mb-8">
+            <Logo size="md" />
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-ink">
+              {t("register.title")}
+            </h1>
+            <p className="text-ink-muted mt-1.5 text-sm">
+              {t("register.subtitle")}
+            </p>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-lg">
-              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+            <div className="mb-5 p-3 bg-accent-soft border border-accent rounded-lg animate-fade-in-up">
+              <p className="text-sm text-accent-strong">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Full name
+              <label htmlFor="fullName" className="block text-sm font-medium text-ink mb-1">
+                {t("register.fullName")}
               </label>
               <input
                 id="fullName"
@@ -78,18 +89,18 @@ export default function RegisterPage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Joseph"
-                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
+                placeholder={t("register.fullNamePlaceholder")}
+                className="w-full px-4 py-2.5 bg-paper-raise border border-line
+                           text-ink placeholder-ink-faint
                            rounded-lg focus:outline-none
-                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           focus:ring-2 focus:ring-accent
                            transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email address
+              <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
+                {t("register.email")}
               </label>
               <input
                 id="email"
@@ -98,17 +109,17 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
+                className="w-full px-4 py-2.5 bg-paper-raise border border-line
+                           text-ink placeholder-ink-faint
                            rounded-lg focus:outline-none
-                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           focus:ring-2 focus:ring-accent
                            transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password
+              <label htmlFor="password" className="block text-sm font-medium text-ink mb-1">
+                {t("register.password")}
               </label>
               <input
                 id="password"
@@ -116,18 +127,18 @@ export default function RegisterPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min. 8 characters"
-                className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
+                placeholder={t("register.passwordPlaceholder")}
+                className="w-full px-4 py-2.5 bg-paper-raise border border-line
+                           text-ink placeholder-ink-faint
                            rounded-lg focus:outline-none
-                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           focus:ring-2 focus:ring-accent
                            transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                I am a...
+              <label className="block text-sm font-medium text-ink mb-1">
+                {t("register.role")}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -135,27 +146,27 @@ export default function RegisterPage() {
                   onClick={() => setRole("job_seeker")}
                   className={`py-2.5 px-3 rounded-lg text-sm font-medium border transition ${
                     role === "job_seeker"
-                      ? "bg-blue-600 border-blue-600 text-white"
-                      : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                      ? "bg-accent border-accent text-white"
+                      : "bg-paper-raise border-line text-ink-muted hover:border-accent"
                   }`}
                 >
-                  Job seeker
+                  {t("register.roleJobSeeker")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setRole("hiring_manager")}
                   className={`py-2.5 px-3 rounded-lg text-sm font-medium border transition ${
                     role === "hiring_manager"
-                      ? "bg-blue-600 border-blue-600 text-white"
-                      : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                      ? "bg-accent border-accent text-white"
+                      : "bg-paper-raise border-line text-ink-muted hover:border-accent"
                   }`}
                 >
-                  Hiring manager
+                  {t("register.roleHiringManager")}
                 </button>
               </div>
               {role === "hiring_manager" && (
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Adds the ability to rank multiple candidate resumes against one job description.
+                <p className="text-xs text-ink-faint mt-1.5">
+                  {t("register.roleHiringManagerHelp")}
                 </p>
               )}
             </div>
@@ -163,18 +174,19 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700
-                         disabled:bg-blue-400 disabled:cursor-not-allowed
-                         text-white font-semibold rounded-lg transition"
+              className="w-full py-2.5 px-4 bg-accent hover:bg-accent-strong
+                         disabled:opacity-60 disabled:cursor-not-allowed
+                         text-white font-semibold rounded-lg
+                         transition-all hover:-translate-y-0.5"
             >
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? t("register.submitting") : t("register.submit")}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-            Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-              Sign in
+          <p className="text-center text-sm text-ink-muted mt-8">
+            {t("register.haveAccount")}{" "}
+            <Link href="/login" className="font-medium hover:underline text-accent">
+              {t("register.signIn")}
             </Link>
           </p>
         </div>

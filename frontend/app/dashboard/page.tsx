@@ -8,12 +8,32 @@ import { isAuthenticated } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
+import { useLanguage } from "@/components/LanguageProvider";
+import type { TranslationKey } from "@/lib/i18n";
 import type { Resume, JobDescription, Analysis, User } from "@/types";
+
+function SectionIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent-soft text-accent-strong shrink-0">
+      {children}
+    </span>
+  );
+}
+
+const STATUS_KEYS: Record<string, TranslationKey> = {
+  done: "status.done",
+  completed: "status.completed",
+  processing: "status.processing",
+  uploaded: "status.uploaded",
+  pending: "status.pending",
+  failed: "status.failed",
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const confirmAction = useConfirm();
+  const { t } = useLanguage();
 
   // ── Data state ──────────────────────────────────────────────────────────────
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -69,7 +89,7 @@ export default function DashboardPage() {
       setJobDescriptions(jobData);
       setAnalyses(analysisData);
     } catch {
-      showToast("Failed to load dashboard. Please refresh.", "error");
+      showToast(t("dashboard.loadFailed"), "error");
     } finally {
       setLoadingPage(false);
     }
@@ -109,9 +129,9 @@ export default function DashboardPage() {
     try {
       const newResume = await resumesApi.upload(file);
       setResumes((prev) => [newResume, ...prev]);
-      showToast("Resume uploaded — processing now.");
+      showToast(t("dashboard.uploadSuccess"));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Upload failed.", "error");
+      showToast(err instanceof Error ? err.message : t("dashboard.uploadFailed"), "error");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -120,18 +140,18 @@ export default function DashboardPage() {
 
   async function handleDeleteResume(id: string) {
     const confirmed = await confirmAction({
-      title: "Delete resume?",
-      message: "This cannot be undone.",
-      confirmLabel: "Delete",
+      title: t("dashboard.deleteResumeTitle"),
+      message: t("dashboard.deleteResumeMsg"),
+      confirmLabel: t("confirm.delete"),
       danger: true,
     });
     if (!confirmed) return;
     try {
       await resumesApi.delete(id);
       setResumes((prev) => prev.filter((r) => r.id !== id));
-      showToast("Resume deleted.");
+      showToast(t("dashboard.resumeDeleted"));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to delete resume.", "error");
+      showToast(err instanceof Error ? err.message : t("dashboard.resumeDeleteFailed"), "error");
     }
   }
 
@@ -148,9 +168,9 @@ export default function DashboardPage() {
       setJobDescriptions((prev) => [newJob, ...prev]);
       setJobTitle("");
       setJobContent("");
-      showToast("Job description saved.");
+      showToast(t("dashboard.jobSaved"));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to save job description.", "error");
+      showToast(err instanceof Error ? err.message : t("dashboard.jobSaveFailed"), "error");
     } finally {
       setSavingJob(false);
     }
@@ -158,9 +178,9 @@ export default function DashboardPage() {
 
   async function handleDeleteJob(id: string) {
     const confirmed = await confirmAction({
-      title: "Delete job description?",
-      message: "This cannot be undone.",
-      confirmLabel: "Delete",
+      title: t("dashboard.deleteJobTitle"),
+      message: t("dashboard.deleteResumeMsg"),
+      confirmLabel: t("confirm.delete"),
       danger: true,
     });
     if (!confirmed) return;
@@ -168,9 +188,9 @@ export default function DashboardPage() {
       await jobDescriptionsApi.delete(id);
       setJobDescriptions((prev) => prev.filter((j) => j.id !== id));
       if (expandedJobId === id) setExpandedJobId(null);
-      showToast("Job description deleted.");
+      showToast(t("dashboard.jobDeleted"));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to delete job description.", "error");
+      showToast(err instanceof Error ? err.message : t("dashboard.jobDeleteFailed"), "error");
     }
   }
 
@@ -187,7 +207,7 @@ export default function DashboardPage() {
         const detail = await jobDescriptionsApi.get(id);
         setJobContents((prev) => ({ ...prev, [id]: detail.content }));
       } catch {
-        setJobContents((prev) => ({ ...prev, [id]: "Failed to load content." }));
+        setJobContents((prev) => ({ ...prev, [id]: t("dashboard.contentLoadFailed") }));
       } finally {
         setLoadingJobId(null);
       }
@@ -206,7 +226,7 @@ export default function DashboardPage() {
       });
       router.push(`/analyses/${analysis.id}`);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to start analysis.", "error");
+      showToast(err instanceof Error ? err.message : t("dashboard.analysisFailed"), "error");
       setRunningAnalysis(false);
     }
   }
@@ -225,9 +245,9 @@ export default function DashboardPage() {
         newResumes.forEach((r) => next.add(r.id));
         return next;
       });
-      showToast(`${newResumes.length} resume(s) uploaded — processing now.`);
+      showToast(t("dashboard.bulkUploadSuccess", { count: newResumes.length }));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Bulk upload failed.", "error");
+      showToast(err instanceof Error ? err.message : t("dashboard.bulkUploadFailed"), "error");
     } finally {
       setBulkUploading(false);
       if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
@@ -255,7 +275,7 @@ export default function DashboardPage() {
       await jobDescriptionsApi.rank(rankingJobId, Array.from(selectedForRanking));
       router.push(`/rankings/${rankingJobId}`);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to start ranking.", "error");
+      showToast(err instanceof Error ? err.message : t("dashboard.rankingFailed"), "error");
       setStartingRanking(false);
     }
   }
@@ -269,9 +289,10 @@ export default function DashboardPage() {
       pending:    "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
       failed:     "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
     };
+    const key = STATUS_KEYS[status];
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colours[status] ?? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}>
-        {status}
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colours[status] ?? "bg-paper text-ink-muted"}`}>
+        {key ? t(key) : status}
       </span>
     );
   }
@@ -280,30 +301,43 @@ export default function DashboardPage() {
 
   if (loadingPage) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors">
-        <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+      <div className="min-h-screen bg-paper flex items-center justify-center transition-colors">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-ink-muted text-sm">{t("dashboard.loading")}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-paper transition-colors">
       <Navbar />
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-fade-in-up">
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+          {/* Resumes */}
+          <div className="bg-paper-raise rounded-2xl border border-line p-6 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Resumes</h2>
+              <div className="flex items-center gap-3">
+                <SectionIcon>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6" />
+                    <path d="M9 13h6M9 17h6" />
+                  </svg>
+                </SectionIcon>
+                <h2 className="text-lg font-semibold text-ink">{t("dashboard.resumes")}</h2>
+              </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                           text-white text-sm font-medium rounded-lg transition"
+                className="px-4 py-2 bg-accent hover:bg-accent-strong disabled:opacity-60
+                           text-white text-sm font-semibold rounded-lg transition-all"
               >
-                {uploading ? "Uploading..." : "Upload Resume"}
+                {uploading ? t("dashboard.uploading") : t("dashboard.upload")}
               </button>
               <input
                 ref={fileInputRef}
@@ -315,21 +349,21 @@ export default function DashboardPage() {
             </div>
 
             {resumes.length === 0 ? (
-              <p className="text-gray-400 text-sm">No resumes yet. Upload one to get started.</p>
+              <p className="text-ink-faint text-sm">{t("dashboard.noResumes")}</p>
             ) : (
               <ul className="space-y-2">
                 {resumes.map((resume) => (
                   <li key={resume.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
-                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[160px]">
+                      className="flex items-center justify-between p-3 bg-paper rounded-lg transition-colors">
+                    <span className="text-sm text-ink truncate max-w-[160px]">
                       {resume.filename}
                     </span>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={resume.status} />
                       <button
                         onClick={() => handleDeleteResume(resume.id)}
-                        title="Delete resume"
-                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 text-sm transition px-1"
+                        title={t("dashboard.deleteResume")}
+                        className="text-ink-faint hover:text-red-600 dark:hover:text-red-400 text-sm transition px-1"
                       >
                         ✕
                       </button>
@@ -340,71 +374,80 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Job Descriptions</h2>
+          {/* Job Descriptions */}
+          <div className="bg-paper-raise rounded-2xl border border-line p-6 shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <SectionIcon>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
+                  <rect x="2" y="7" width="20" height="14" rx="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              </SectionIcon>
+              <h2 className="text-lg font-semibold text-ink">{t("dashboard.jobDescriptions")}</h2>
+            </div>
 
             <form onSubmit={handleCreateJob} className="space-y-3 mb-4">
               <input
                 type="text"
-                placeholder="Job title"
+                placeholder={t("dashboard.jobTitlePlaceholder")}
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
-                           rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-paper-raise border border-line
+                           text-ink placeholder-ink-faint
+                           rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
               />
               <textarea
-                placeholder="Paste the full job description here..."
+                placeholder={t("dashboard.jobContentPlaceholder")}
                 value={jobContent}
                 onChange={(e) => setJobContent(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500
-                           rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-colors"
+                className="w-full px-3 py-2 bg-paper-raise border border-line
+                           text-ink placeholder-ink-faint
+                           rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none transition-colors"
               />
               <button
                 type="submit"
                 disabled={savingJob || !jobTitle.trim() || !jobContent.trim()}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                           text-white text-sm font-medium rounded-lg transition"
+                className="w-full py-2 bg-accent hover:bg-accent-strong disabled:opacity-60
+                           text-white text-sm font-semibold rounded-lg transition-all"
               >
-                {savingJob ? "Saving..." : "Save Job Description"}
+                {savingJob ? t("dashboard.saving") : t("dashboard.saveJob")}
               </button>
             </form>
 
             {jobDescriptions.length === 0 ? (
-              <p className="text-gray-400 text-sm">No job descriptions yet.</p>
+              <p className="text-ink-faint text-sm">{t("dashboard.noJobs")}</p>
             ) : (
               <ul className="space-y-2">
                 {jobDescriptions.map((job) => (
-                  <li key={job.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
+                  <li key={job.id} className="bg-paper rounded-lg transition-colors">
                     <div className="flex items-center justify-between p-3">
                       <button
                         onClick={() => handleToggleJob(job.id)}
-                        className="text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition text-left flex-1"
+                        className="text-sm text-ink hover:text-accent transition text-left flex-1"
                       >
                         {expandedJobId === job.id ? "▾" : "▸"} {job.title}
                       </button>
                       {currentUser?.role === "hiring_manager" && (
                         <Link
                           href={`/rankings/${job.id}`}
-                          title="View candidate ranking"
-                          className="text-xs text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition px-1 whitespace-nowrap"
+                          title={t("dashboard.viewRanking")}
+                          className="text-xs text-ink-faint hover:text-accent transition px-1 whitespace-nowrap"
                         >
-                          Ranking →
+                          {t("dashboard.viewRankingLink")}
                         </Link>
                       )}
                       <button
                         onClick={() => handleDeleteJob(job.id)}
-                        title="Delete job description"
-                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 text-sm transition px-1"
+                        title={t("dashboard.deleteJob")}
+                        className="text-ink-faint hover:text-red-600 dark:hover:text-red-400 text-sm transition px-1"
                       >
                         ✕
                       </button>
                     </div>
                     {expandedJobId === job.id && (
-                      <div className="px-3 pb-3 text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                        {loadingJobId === job.id ? "Loading..." : jobContents[job.id]}
+                      <div className="px-3 pb-3 text-sm text-ink-muted whitespace-pre-wrap">
+                        {loadingJobId === job.id ? t("dashboard.contentLoading") : jobContents[job.id]}
                       </div>
                     )}
                   </li>
@@ -414,27 +457,35 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Run Analysis</h2>
+        {/* Run Analysis */}
+        <div className="bg-paper-raise rounded-2xl border border-line p-6 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-3 mb-4">
+            <SectionIcon>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
+                <path d="M12 2l1.9 5.8L20 9.5l-5.6 2L12 17l-2.4-5.5L4 9.5l6.1-1.7z" />
+              </svg>
+            </SectionIcon>
+            <h2 className="text-lg font-semibold text-ink">{t("dashboard.runAnalysis")}</h2>
+          </div>
 
           {doneResumes.length === 0 || jobDescriptions.length === 0 ? (
-            <p className="text-gray-400 text-sm py-2">
+            <p className="text-ink-faint text-sm py-2">
               {doneResumes.length === 0 && jobDescriptions.length === 0
-                ? "Upload a resume and add a job description to run your first analysis."
+                ? t("dashboard.emptyBoth")
                 : doneResumes.length === 0
-                ? "Upload a resume and wait for processing to finish before running an analysis."
-                : "Add a job description to run an analysis."}
+                ? t("dashboard.emptyResume")
+                : t("dashboard.emptyJob")}
             </p>
           ) : (
             <form onSubmit={handleRunAnalysis} className="flex flex-col sm:flex-row gap-3">
               <select
                 value={selectedResumeId}
                 onChange={(e) => setSelectedResumeId(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700
-                           text-gray-900 dark:text-gray-100 transition-colors"
+                className="flex-1 px-3 py-2 border border-line rounded-lg text-sm
+                           focus:outline-none focus:ring-2 focus:ring-accent bg-paper-raise
+                           text-ink transition-colors"
               >
-                <option value="">Select a resume...</option>
+                <option value="">{t("dashboard.selectResume")}</option>
                 {doneResumes.map((r) => (
                   <option key={r.id} value={r.id}>{r.filename}</option>
                 ))}
@@ -443,11 +494,11 @@ export default function DashboardPage() {
               <select
                 value={selectedJobId}
                 onChange={(e) => setSelectedJobId(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700
-                           text-gray-900 dark:text-gray-100 transition-colors"
+                className="flex-1 px-3 py-2 border border-line rounded-lg text-sm
+                           focus:outline-none focus:ring-2 focus:ring-accent bg-paper-raise
+                           text-ink transition-colors"
               >
-                <option value="">Select a job description...</option>
+                <option value="">{t("dashboard.selectJob")}</option>
                 {jobDescriptions.map((j) => (
                   <option key={j.id} value={j.id}>{j.title}</option>
                 ))}
@@ -456,31 +507,41 @@ export default function DashboardPage() {
               <button
                 type="submit"
                 disabled={runningAnalysis || !selectedResumeId || !selectedJobId}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400
-                           text-white text-sm font-semibold rounded-lg transition whitespace-nowrap"
+                className="px-6 py-2 bg-accent hover:bg-accent-strong disabled:opacity-60
+                           text-white text-sm font-semibold rounded-lg
+                           transition-all whitespace-nowrap"
               >
-                {runningAnalysis ? "Starting..." : "Run Analysis →"}
+                {runningAnalysis ? t("dashboard.starting") : t("dashboard.runAnalysisBtn")}
               </button>
             </form>
           )}
         </div>
 
+        {/* Rank Candidates (hiring managers only) */}
         {currentUser?.role === "hiring_manager" && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Rank Candidates</h2>
-                <p className="text-sm text-gray-400 mt-0.5">
-                  Upload multiple resumes and rank them against one job description.
-                </p>
+          <div className="bg-paper-raise rounded-2xl border border-line p-6 shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <SectionIcon>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
+                    <path d="M8 21h8M12 17v4M17 3H7v6a5 5 0 0 0 10 0V3z" />
+                    <path d="M17 5h3a2 2 0 0 1-2 4M7 5H4a2 2 0 0 0 2 4" />
+                  </svg>
+                </SectionIcon>
+                <div>
+                  <h2 className="text-lg font-semibold text-ink">{t("dashboard.rankCandidates")}</h2>
+                  <p className="text-sm text-ink-faint mt-0.5">
+                    {t("dashboard.rankCandidatesSubtitle")}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => bulkFileInputRef.current?.click()}
                 disabled={bulkUploading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                           text-white text-sm font-medium rounded-lg transition whitespace-nowrap"
+                className="px-4 py-2 bg-accent hover:bg-accent-strong disabled:opacity-60
+                           text-white text-sm font-semibold rounded-lg transition-all whitespace-nowrap"
               >
-                {bulkUploading ? "Uploading..." : "Upload Resumes"}
+                {bulkUploading ? t("dashboard.uploading") : t("dashboard.uploadResumes")}
               </button>
               <input
                 ref={bulkFileInputRef}
@@ -493,11 +554,11 @@ export default function DashboardPage() {
             </div>
 
             {resumes.length === 0 ? (
-              <p className="text-gray-400 text-sm py-2">Upload resumes above to start ranking candidates.</p>
+              <p className="text-ink-faint text-sm py-2">{t("dashboard.rankingNeedsUpload")}</p>
             ) : (
               <>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Candidates ({selectedForRanking.size} selected)
+                <p className="text-sm font-medium text-ink mb-2">
+                  {t("dashboard.candidatesSelected", { count: selectedForRanking.size })}
                 </p>
                 <div className="max-h-48 overflow-y-auto space-y-1 mb-4 pr-1">
                   {resumes.map((resume) => (
@@ -505,8 +566,8 @@ export default function DashboardPage() {
                       key={resume.id}
                       className={`flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors ${
                         resume.status === "done"
-                          ? "bg-gray-50 dark:bg-gray-700 cursor-pointer"
-                          : "bg-gray-50 dark:bg-gray-700 opacity-50 cursor-not-allowed"
+                          ? "bg-paper cursor-pointer"
+                          : "bg-paper opacity-50 cursor-not-allowed"
                       }`}
                     >
                       <input
@@ -514,9 +575,9 @@ export default function DashboardPage() {
                         checked={selectedForRanking.has(resume.id)}
                         disabled={resume.status !== "done"}
                         onChange={() => toggleResumeForRanking(resume.id)}
-                        className="rounded"
+                        className="rounded accent-accent"
                       />
-                      <span className="text-gray-700 dark:text-gray-300 truncate flex-1">{resume.filename}</span>
+                      <span className="text-ink truncate flex-1">{resume.filename}</span>
                       <StatusBadge status={resume.status} />
                     </label>
                   ))}
@@ -526,11 +587,11 @@ export default function DashboardPage() {
                   <select
                     value={rankingJobId}
                     onChange={(e) => setRankingJobId(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700
-                               text-gray-900 dark:text-gray-100 transition-colors"
+                    className="flex-1 px-3 py-2 border border-line rounded-lg text-sm
+                               focus:outline-none focus:ring-2 focus:ring-accent bg-paper-raise
+                               text-ink transition-colors"
                   >
-                    <option value="">Select a job description...</option>
+                    <option value="">{t("dashboard.selectJob")}</option>
                     {jobDescriptions.map((j) => (
                       <option key={j.id} value={j.id}>{j.title}</option>
                     ))}
@@ -539,10 +600,14 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={startingRanking || !rankingJobId || selectedForRanking.size === 0}
-                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400
-                               text-white text-sm font-semibold rounded-lg transition whitespace-nowrap"
+                    className="px-6 py-2 bg-accent hover:bg-accent-strong disabled:opacity-60
+                               text-white text-sm font-semibold rounded-lg transition-all whitespace-nowrap"
                   >
-                    {startingRanking ? "Starting..." : `Rank ${selectedForRanking.size || ""} Candidates →`}
+                    {startingRanking
+                      ? t("dashboard.starting")
+                      : selectedForRanking.size > 0
+                      ? t("dashboard.rankButton", { count: selectedForRanking.size })
+                      : t("dashboard.rankButtonEmpty")}
                   </button>
                 </form>
               </>
@@ -551,25 +616,33 @@ export default function DashboardPage() {
         )}
 
         {analyses.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Past Analyses</h2>
+          <div className="bg-paper-raise rounded-2xl border border-line p-6 shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <SectionIcon>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
+                  <path d="M3 3v18h18" />
+                  <path d="M7 15l4-6 4 3 5-8" />
+                </svg>
+              </SectionIcon>
+              <h2 className="text-lg font-semibold text-ink">{t("dashboard.pastAnalyses")}</h2>
+            </div>
             <ul className="space-y-2">
               {analyses.map((analysis) => (
                 <li key={analysis.id}>
                   <Link
                     href={`/analyses/${analysis.id}`}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700
-                               hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition"
+                    className="flex items-center justify-between p-3 bg-paper
+                               hover:bg-paper rounded-lg transition"
                   >
                     <div className="flex items-center gap-3">
                       <StatusBadge status={analysis.status} />
                       {analysis.fit_score !== null && (
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          Fit: <strong>{analysis.fit_score}</strong> · ATS: <strong>{analysis.ats_score}</strong>
+                        <span className="text-sm text-ink-muted">
+                          {t("dashboard.fitLabel")} <strong className="text-ink">{analysis.fit_score}</strong> · {t("dashboard.atsLabel")} <strong className="text-ink">{analysis.ats_score}</strong>
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-ink-faint">
                       {new Date(analysis.created_at).toLocaleDateString()}
                     </span>
                   </Link>
